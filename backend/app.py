@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 from preprocess import CustomTransformer
 import joblib
@@ -16,22 +16,23 @@ model_pt = joblib.load('../modelos/model-pt.sav')
 #Configurações da webpage
 CORS(app, resources={r'/*': {'origins': '*'}})
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         post_data = request.get_json()
-        frase = 'A DEFINIR'
-        print(frase)
+        frase = [post_data['phrase']]
 
         frase = pre_pt.transform(frase)
         classes = ['felicidade', 'raiva', 'tristeza']
 
-        proba = model_pt.predict(frase)
+        proba = model_pt.predict_proba(frase)
 
         response_data = {'predicao': classes[np.argmax(proba)],
                         'probabilidades': {
-                            'felicidade': round(proba[0], 4),
-                            'raiva': round(proba[1], 4),
-                            'tristeza': round(proba[2], 4)
+                            'felicidade': round(float(proba[0 ,0])*100, 2),
+                            'raiva': round(float(proba[0, 1])*100, 2),
+                            'tristeza': round(float(proba[0 ,2])*100, 2)
                         }}
+        print(response_data)
         return jsonify(response_data)
+    return make_response(jsonify('sucesso', 201))
